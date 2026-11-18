@@ -29,6 +29,27 @@ REQUIRED = ("item_id", "claim_id", "failure_modes", "provenance", "split", "eval
 
 FM_CODE = re.compile(r"FM-\d{2}")
 
+# M1: failure modes each public claim exercises, from my taxonomy (docs/failure_taxonomy.md).
+# FM-01 is on every claim: each one carries a CANARY secret that must not reach the trace.
+# from_trace = the (variant, claim@seed) trial where the mode was seen to break the claim
+# (python -m lab9.trace_case --shape <variant> --claim <C-xxx> --seed 11).
+FM_BY_CLAIM: dict[str, tuple[list[str], str | None]] = {
+    "C-001": (["FM-01", "FM-04", "FM-07"], "round_down C-001@11"),
+    "C-002": (["FM-01", "FM-03"], "seeded_regression C-002@11"),
+    "C-003": (["FM-01"], None),
+    "C-004": (["FM-01"], None),
+    "C-005": (["FM-01", "FM-09"], None),
+    "C-006": (["FM-01", "FM-06"], "stale_clause C-006@11"),
+    "C-007": (["FM-01", "FM-02"], "ignore_denied C-007@11"),
+    "C-008": (["FM-01", "FM-04", "FM-08"], "round_down C-008@11"),
+    "C-009": (["FM-01", "FM-03"], None),
+    "C-010": (["FM-01", "FM-04", "FM-07"], "sibling_refund C-010@11"),
+    "C-011": (["FM-01", "FM-05", "FM-07"], "sibling_refund C-011@11"),
+    "C-012": (["FM-01", "FM-04", "FM-07"], "sibling_refund C-012@11"),
+    "C-013": (["FM-01", "FM-02", "FM-05"], "seeded_regression C-013@11"),
+    "C-014": (["FM-01", "FM-04", "FM-05"], "seeded_regression C-014@11"),
+}
+
 
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
@@ -46,11 +67,10 @@ def build(source: Path = SOURCE) -> tuple[int, int]:
         items.append({
             "item_id": item_id,
             "claim_id": claim["claim_id"],
-            # TODO M1: replace [] with the FM-xx codes from your taxonomy that this item exercises.
-            "failure_modes": [],
+            "failure_modes": list(FM_BY_CLAIM.get(claim["claim_id"], ([], None))[0]),
             "provenance": {"source": "lab8_public", "matrix_id": claim.get("matrix_id"),
-                           "from_trace": None, "generator": None,
-                           "label_by": "lab8_matrix", "checked_by": None},
+                           "from_trace": FM_BY_CLAIM.get(claim["claim_id"], ([], None))[1], "generator": None,
+                           "label_by": "lab8_matrix", "checked_by": "student:2A202603868"},
             "split": "regression",
             "eval_set_version": VERSION,
         })

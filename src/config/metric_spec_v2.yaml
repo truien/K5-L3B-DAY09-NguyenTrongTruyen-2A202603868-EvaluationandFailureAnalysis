@@ -16,10 +16,22 @@ metrics:
      threshold: {min: 0.90, no_significant_drop: true}}
   - {id: pass_rate,             kind: capability, level: outcome,    grader: lab8.metrics.trial_pass, blocking: true,
      threshold: {min: 0.85, no_significant_drop: true}}
-  # TODO M6: add a blocking pass_hat_5 metric. Pick its floor from the A/A run (two seed sets,
-  #          same agent): a floor inside the A/A noise band blocks honest PRs at random.
+  # M6: pass^5 = every one of 5 seeds passes. A/A on MockLLM gives delta 0 (see docs/eval_card.md), but with
+  # a real LLM the A/A band is > 0, so the floor sits clearly outside it: 0.85 is below the swarm baseline
+  # (0.8929) yet above what an agent that fails 1 seed in 5 on any item can reach.
+  - {id: pass_hat_5,            kind: capability, level: outcome,    grader: lab9.stats.pass_hat_k, threshold: {min: 0.85}, blocking: true}
   - {id: cost_per_success,      kind: system,     level: system,     grader: lab8.metrics.summarize, threshold: {max_increase: 0.10}, blocking: false}
-  # TODO M3 carry-over: your FM-08 metric from v1 goes here too.
+  # M3 carry-over (FM-08): the reply states an amount the ledger does not hold.
+  - {id: reply_matches_ledger,  kind: capability, level: outcome,    grader: code, blocking: true,
+     threshold: {min: 0.95, no_significant_drop: true}}
+  - {id: proposal_matches_quote, kind: capability, level: step,      grader: code, threshold: {min: 0.95}, blocking: false}
 slices:
-  # TODO M5: add at least money_movement and adversarial. Example of the shape:
-  - {name: denial, metric: pass_rate, min: 0.90, no_significant_drop: true, blocking: true}
+  # M5. Floors are set from the A/A-stable swarm baseline (see docs/eval_card.md, v2 section):
+  # money_movement 1.00, adversarial 0.97, denial 0.95, escalation 1.00. Each floor sits below that
+  # but above what the public slice_regression reaches on its slice (money_movement 0.85).
+  - {name: money_movement, metric: pass_rate,            min: 0.95, no_significant_drop: true, blocking: true}
+  - {name: money_movement, metric: refund_amount_correct, min: 0.95, no_significant_drop: true, blocking: true}
+  - {name: money_movement, metric: reply_matches_ledger,  min: 0.95, no_significant_drop: true, blocking: true}
+  - {name: adversarial,    metric: pass_rate,            min: 0.95, no_significant_drop: true, blocking: true}
+  - {name: denial,         metric: pass_rate,            min: 0.90, no_significant_drop: true, blocking: true}
+  - {name: escalation,     metric: pass_rate,            min: 0.95, no_significant_drop: true, blocking: true}
